@@ -1,0 +1,210 @@
+---
+title: "IE582 HW-1"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+## IE582 HW-1
+## Task 1-1
+At first, I installed data.table, got the data and filter it to English Premier Lig.  
+
+```{r}
+library(data.table)
+matches<-read.csv("C:/Users/gÜlce/Desktop/4-1/582/hw1/data/matches.csv")
+English_Premier_League_matches<-matches[matches[["league_id"]] == "148", ]
+```
+
+## Plots
+## Home Score:
+
+```{r pressure, echo=TRUE, message=FALSE, warning=FALSE, paged.print=TRUE}
+hist(English_Premier_League_matches$match_hometeam_score,xlab="Home Score",ylab="Number Of Games")
+```
+## Away Score:
+
+```{r pressure2, echo=TRUE, message=FALSE, warning=FALSE, paged.print=TRUE}
+hist(English_Premier_League_matches$match_awayteam_score,xlab="Away Score",ylab="Number Of Games")
+```
+## Home Score-Away_Score:
+
+```{r pressure3, echo=TRUE, message=FALSE, warning=FALSE, paged.print=TRUE}
+hist(English_Premier_League_matches$match_hometeam_score-English_Premier_League_matches$match_awayteam_score, xlab="Home Score- Away Score",ylab="Number Of Games")
+```
+
+## Task 1-2
+
+I calculated sample mean of home team scores in English Premier League.Then,I found intervals for Poisson distribution and used sample mean as mean of the distribution. I made histogram of the distribution and compare it with plotted theoretical distribution.It fitted on poisson distribution. 
+
+```{r}
+mean_hometeam_score<-mean(English_Premier_League_matches$match_hometeam_score,na.rm=T)
+
+max<-max(English_Premier_League_matches$match_hometeam_score,na.rm=T)
+min<-min(English_Premier_League_matches$match_hometeam_score,na.rm=T)
+
+x<-English_Premier_League_matches$match_hometeam_score
+h<-hist(x,breaks=50, xlab="Home Score",ylab="Number Of Games")
+
+xfit<-seq(min,max,length=9)
+yfit<-dpois(xfit,mean_hometeam_score)
+yfit <- yfit*length(x)
+lines(xfit, yfit, col="blue")
+
+```
+
+I did the same procedure for away team scores in English Premier League.It fitted on poisson distribution.    
+
+```{r}
+mean_awayteam_score<-mean(English_Premier_League_matches$match_awayteam_score,na.rm=T)
+
+max<-max(English_Premier_League_matches$match_awayteam_score,na.rm=T)
+min<-min(English_Premier_League_matches$match_awayteam_score,na.rm=T)
+
+x<-English_Premier_League_matches$match_awayteam_score
+h<-hist(x,breaks=50, xlab="Away Score",ylab="Number Of Games")
+
+xfit<-seq(min,max,length=7)
+yfit<-dpois(xfit,mean_awayteam_score)
+yfit <- yfit*length(x)
+lines(xfit, yfit, col="blue")
+```
+
+I did the same procedure for (home team-away team) scores in English Premier League. It did not fit on poisson distribution but fitted on normal distribution.    
+
+```{r}
+mean_home_minus_away_score<-mean(English_Premier_League_matches$match_hometeam_score-English_Premier_League_matches$match_awayteam_score,na.rm=T)
+
+max<-max(English_Premier_League_matches$match_hometeam_score-English_Premier_League_matches$match_awayteam_score,na.rm=T)
+min<-min(English_Premier_League_matches$match_hometeam_score-English_Premier_League_matches$match_awayteam_score,na.rm=T)
+x<-English_Premier_League_matches$match_hometeam_score-English_Premier_League_matches$match_awayteam_score
+h<-hist(x,breaks=50, xlab="Home-Away Score",ylab="Number Of Games")
+
+xfit<-seq(min,max,length=15)
+yfit<-dpois(xfit,mean_home_minus_away_score)
+yfit <- yfit*length(x)
+lines(xfit, yfit, col="blue")
+
+xfit<-seq(-8,8,length=10000)
+y<-dnorm(xfit, mean = mean_home_minus_away_score, sd = sd(x, na.rm = T), log = FALSE)
+yfit<-y*length(x)
+lines(xfit,yfit,col="blue")
+
+```
+
+## Task 2-1
+
+First, I turned csv to data.table.Then I selected bookmakers: BetOlimp, 10Bet, 18bet, 1xBet.
+
+```{r}
+betsdata<-fread("C:/Users/gÜlce/Desktop/4-1/582/hw1/data/bets.csv") 
+bets_of_chosen_bookmakers<-betsdata[betsdata$"odd_bookmakers" %in% c("BetOlimp" , "10Bet" , "18bet" , "1xBet") ]
+```
+
+I calculated probabilities for home win, tie and away win.
+```{r}
+bets_for_homewin<-bets_of_chosen_bookmakers[bets_of_chosen_bookmakers[["variable"]] == "odd_1" ]
+
+odds_of_homewin<-bets_for_homewin$value
+odd_prob_of_homewin<-1/odds_of_homewin
+
+
+bets_for_draw<-bets_of_chosen_bookmakers[bets_of_chosen_bookmakers[["variable"]] == "odd_x" ]
+
+odds_of_draw<-bets_for_draw$value
+odd_prob_of_draw<-1/odds_of_draw
+
+
+bets_for_away<-bets_of_chosen_bookmakers[bets_of_chosen_bookmakers[["variable"]] == "odd_2" ]
+
+odds_of_away<-bets_for_away$value
+odd_prob_of_away<-1/odds_of_away
+
+```
+
+## Task 2-2
+
+I normalized probabilites.
+
+```{r}
+normalizationterm<-1/(odd_prob_of_homewin + odd_prob_of_draw + odd_prob_of_away  )
+
+norm_odd_prob_of_homewin<-odd_prob_of_homewin*normalizationterm
+
+norm_odd_prob_of_draw<-odd_prob_of_draw*normalizationterm
+
+norm_odd_prob_of_away<-odd_prob_of_away*normalizationterm
+
+
+```
+
+## Task 2-3
+
+Plotted with the first probabilities and then with actual probabilities.
+
+```{r pressure5, echo=TRUE, message=FALSE, warning=FALSE, paged.print=TRUE}
+plot(odd_prob_of_homewin-odd_prob_of_away , odd_prob_of_draw,xlab = "P(home win) â€“ P(away win)" , ylab="P(draw)" )
+
+plot(norm_odd_prob_of_homewin-norm_odd_prob_of_away , norm_odd_prob_of_draw, xlab = " actual P(home win) â€“ P(away win)" , ylab="actual P(draw)")
+
+```
+
+## Task 2-4
+
+Installed tidyverse, got matches as datatable and then created new column to detect "draw" situations.
+
+```{r}
+library(tidyverse)
+matchesdatatable<-fread("C:/Users/gÜlce/Desktop/4-1/582/hw1/data/matches.csv") 
+matchesdatatable[,Home_minus_away_column:=match_hometeam_score-match_awayteam_score]
+
+
+```
+
+Prepared bets data in order to observe just odd_1,odd_x and odd_2 variables, made long to wide. 
+
+```{r}
+bets_of_chosen_bookmakers<-bets_of_chosen_bookmakers[variable == "odd_1" | variable == "odd_x" | variable == "odd_2"] %>%
+  spread(variable,value)
+```
+
+Created new columns to get P(home)-P(away)
+```{r}
+bets_of_chosen_bookmakers[,Phome:=norm_odd_prob_of_homewin]
+bets_of_chosen_bookmakers[,Pdraw:=norm_odd_prob_of_draw]
+bets_of_chosen_bookmakers[ ,Paway:=norm_odd_prob_of_away]
+bets_of_chosen_bookmakers[ ,Phomeaway:=Phome-Paway]
+```
+
+Separated four bookmakers.
+```{r}
+bets_of_chosen_bookmakers_BetOlimp<-bets_of_chosen_bookmakers[bets_of_chosen_bookmakers$"odd_bookmakers" %in% c("BetOlimp")]
+bets_of_chosen_bookmakers_10Bet<-bets_of_chosen_bookmakers[bets_of_chosen_bookmakers$"odd_bookmakers" %in% c("10Bet")]
+bets_of_chosen_bookmakers_18bet<-bets_of_chosen_bookmakers[bets_of_chosen_bookmakers$"odd_bookmakers" %in% c("18bet")]
+bets_of_chosen_bookmakers_1xBet<-bets_of_chosen_bookmakers[bets_of_chosen_bookmakers$"odd_bookmakers" %in% c("1xBet")]
+```
+
+Discretized into bins for each bookmakers.
+```{r}
+cutted_BetOlimp<-cut(bets_of_chosen_bookmakers_BetOlimp$Phomeaway, breaks=c(-1,-0.8,-0.6,-0.4,-0.2,0,0.2,0.4,0.6,0.8,1), include.lowest=TRUE , labels = c("bin1" , "bin2","bin3","bin4","bin5","bin6","bin7","bin8","bin9","bin10" ))
+bets_of_chosen_bookmakers_BetOlimp[ ,bin:=cutted_BetOlimp]
+
+cutted_10Bet<-cut(bets_of_chosen_bookmakers_10Bet$Phomeaway, breaks=c(-1,-0.8,-0.6,-0.4,-0.2,0,0.2,0.4,0.6,0.8,1), include.lowest=TRUE , labels = c("bin1" , "bin2","bin3","bin4","bin5","bin6","bin7","bin8","bin9","bin10" ))
+bets_of_chosen_bookmakers_10Bet[ ,bin:=cutted_10Bet]
+
+cutted_18bet<-cut(bets_of_chosen_bookmakers_18bet$Phomeaway, breaks=c(-1,-0.8,-0.6,-0.4,-0.2,0,0.2,0.4,0.6,0.8,1), include.lowest=TRUE , labels = c("bin1" , "bin2","bin3","bin4","bin5","bin6","bin7","bin8","bin9","bin10" ))
+bets_of_chosen_bookmakers_18bet[ ,bin:=cutted_18bet]
+
+cutted_1xBet<-cut(bets_of_chosen_bookmakers_1xBet$Phomeaway, breaks=c(-1,-0.8,-0.6,-0.4,-0.2,0,0.2,0.4,0.6,0.8,1), include.lowest=TRUE , labels = c("bin1" , "bin2","bin3","bin4","bin5","bin6","bin7","bin8","bin9","bin10" ))
+bets_of_chosen_bookmakers_1xBet[ ,bin:=cutted_1xBet]
+
+```
+
+"Draw" matches matched with bins according to match_id.
+```{r}
+
+
+```
+
+

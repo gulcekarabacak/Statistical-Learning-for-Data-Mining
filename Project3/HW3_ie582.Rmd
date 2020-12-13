@@ -1,0 +1,401 @@
+---
+title: "HW3-IE582"
+author: "Gulce Karabacak"
+date: "22 Kasým 2019"
+output: html_document
+---
+#Gulce Karabacak
+
+#HOMEWORK 3
+
+
+```{r}
+library(data.table)
+library(Metrics)
+library(glmnet)
+```
+
+
+
+##a)
+Aim is using 168 and 48 hours ago consumption values as naïve approaches to predict next day’s consumption. 
+
+In order to make computations, I convert consumptions to numeric form. 
+
+I defined datatables and checked whether there is any null.
+```{r}
+test<-fread("C:/Users/test2days.csv")
+setnames(test, c("Date_t", "Hour_t","C_t"))
+
+train<-fread("C:/Users/ConsumptionTotalData.csv")
+setnames(train, c("Date_Td", "Hour_Td","C_Td"))
+
+
+test$C_t <- gsub("\\.", "", test$C_t)
+test$C_t<- gsub("\\,", ".", test$C_t)
+test$C_t<-as.numeric(test$C_t)
+
+train$C_Td <- gsub("\\.", "", train$C_Td)
+train$C_Td<- gsub("\\,", ".", train$C_Td)
+train$C_Td<-as.numeric(train$C_Td)
+
+sum(is.na(test))
+sum(is.na(train))
+
+```
+
+
+I added predictions to the test data for both type. (lag48 and lag168)
+```{r}
+testp48<-cbind(test, train[33529:33576,3])
+testp168<-cbind(test, train[33409:33456,3])
+```
+
+
+
+For each hour, APE is: 
+```{r}
+testp48$ape<- abs((testp48$C_t-testp48$C_Td)/testp48$C_t)*100
+testp168$ape<- abs((testp168$C_t-testp168$C_Td)/testp168$C_t)*100
+```
+
+
+Looked MAPE value for both prediction.
+```{r}
+mape48<-mean(testp48$ape)
+mape48
+```
+
+```{r}
+mape168<-mean(testp168$ape)
+mape168
+```
+
+SÝnce we can see from the results, MAPE value of Lag_168 is lower than the value of Lag_48, which means that Lag_168 has better performance in prediction.
+
+
+##b)
+
+
+At first, I prepared long format data table for train data.
+
+To be ensure that each data has lag values, I removed first 168 data on the train since they don't have lag 168 values.
+```{r}
+trainwithlag<-train[-c(1:168),]
+
+trainwithlag<-cbind(trainwithlag, train[121:33528,3])
+trainwithlag<-cbind(trainwithlag, train[1:33408,3])
+
+colnames(trainwithlag)[3]<-"Consumption"
+colnames(trainwithlag)[4]<-"lag_48"
+colnames(trainwithlag)[5]<-"lag_168"
+```
+
+
+I trained model with training data and got summary.
+```{r}
+linreg<-lm(Consumption~lag_48+lag_168, data = trainwithlag)
+summary(linreg)
+linreg
+```
+
+I prepared long format data table for test data.  
+```{r}
+testwithlag<-cbind(test, testp48[,4])
+testwithlag<-cbind(testwithlag, testp168[,4])
+
+colnames(testwithlag)[3]<-"Consumption"
+colnames(testwithlag)[4]<-"lag_48"
+colnames(testwithlag)[5]<-"lag_168"
+```
+
+
+I tested model on the test data.
+```{r}
+testprediction<-predict(linreg, testwithlag)
+testwithlag<-cbind(testwithlag, testprediction)
+
+```
+
+Calculated mape. 
+```{r}
+
+testwithlag$ape<- abs((testwithlag$Consumption-testwithlag$testprediction)/testwithlag$Consumption)*100
+
+mapepartb<-mean(testwithlag$ape)
+mapepartb
+```
+
+
+##c)
+
+At first, I seperated training data according to its hours.
+
+```{r}
+setkey(trainwithlag, Hour_Td)
+
+trainh0<-trainwithlag["00:00"]
+trainh1<-trainwithlag["01:00"]
+trainh2<-trainwithlag["02:00"]
+trainh3<-trainwithlag["03:00"]
+trainh4<-trainwithlag["04:00"]
+trainh5<-trainwithlag["05:00"]
+trainh6<-trainwithlag["06:00"]
+trainh7<-trainwithlag["07:00"]
+trainh8<-trainwithlag["08:00"]
+trainh9<-trainwithlag["09:00"]
+trainh10<-trainwithlag["10:00"]
+trainh11<-trainwithlag["11:00"]
+trainh12<-trainwithlag["12:00"]
+trainh13<-trainwithlag["13:00"]
+trainh14<-trainwithlag["14:00"]
+trainh15<-trainwithlag["15:00"]
+trainh16<-trainwithlag["16:00"]
+trainh17<-trainwithlag["17:00"]
+trainh18<-trainwithlag["18:00"]
+trainh19<-trainwithlag["19:00"]
+trainh20<-trainwithlag["20:00"]
+trainh21<-trainwithlag["21:00"]
+trainh22<-trainwithlag["22:00"]
+trainh23<-trainwithlag["23:00"]
+
+
+```
+
+
+
+I seperated test data  according to its hours.
+
+```{r}
+testwithlag<-as.data.table(testwithlag)
+setkey(testwithlag, Hour_t)
+
+testh0<-testwithlag["00:00"]
+testh1<-testwithlag["01:00"]
+testh2<-testwithlag["02:00"]
+testh3<-testwithlag["03:00"]
+testh4<-testwithlag["04:00"]
+testh5<-testwithlag["05:00"]
+testh6<-testwithlag["06:00"]
+testh7<-testwithlag["07:00"]
+testh8<-testwithlag["08:00"]
+testh9<-testwithlag["09:00"]
+testh10<-testwithlag["10:00"]
+testh11<-testwithlag["11:00"]
+testh12<-testwithlag["12:00"]
+testh13<-testwithlag["13:00"]
+testh14<-testwithlag["14:00"]
+testh15<-testwithlag["15:00"]
+testh16<-testwithlag["16:00"]
+testh17<-testwithlag["17:00"]
+testh18<-testwithlag["18:00"]
+testh19<-testwithlag["19:00"]
+testh20<-testwithlag["20:00"]
+testh21<-testwithlag["21:00"]
+testh22<-testwithlag["22:00"]
+testh23<-testwithlag["23:00"]
+
+
+```
+
+
+I trained 24 models with training data and used in test data, got Mape values.
+
+```{r}
+trainhlist<-list(trainh0,trainh1,trainh2,trainh3,trainh4,trainh5,trainh6,trainh7,trainh8,trainh9,trainh10,trainh11,trainh12,trainh13,trainh14,trainh15,trainh16,trainh17,trainh18,trainh19,trainh20,trainh21,trainh22,trainh23)
+
+testhlist<-list(testh0,testh1,testh2,testh3,testh4,testh5,testh6,testh7,testh8,testh9,testh10,testh11,testh12,testh13,testh14,testh15,testh16,testh17,testh18,testh19,testh20,testh21,testh22,testh23)
+
+linreg<-vector(mode = "list", length = 24)
+testpredc<-vector(mode = "list", length = 24)
+Ape_partc<-vector(mode = "list", length = 24)
+Apec<-vector(mode = "list", length = 24)
+
+for (i in 1:24) {
+linreg[[i]]<-lm(Consumption~lag_48+lag_168, data = trainhlist[[i]])
+
+testpredc[[i]]<-predict(linreg[[i]], testhlist[[i]])
+
+Ape_partc[[i]]<-abs((testhlist[[i]][["Consumption"]]-testpredc[[i]])/testhlist[[i]][["Consumption"]])*100
+Apec[[i]]<-mean(Ape_partc[[i]]) 
+ 
+}
+
+```
+
+
+##d)
+Construction of wide format features for train data is done.
+(For all hours of the same day, features are the same also in this model. So, for each day, I found feature data table.)
+```{r}
+
+trainford<-data.table(matrix(nrow = 1392))
+
+for (k in 8:1399) {
+  
+    for(i in 1:24){ 
+  trainford[k, paste0("lag_48h", i)]   <- train[i+24*k-72,3]
+    }
+    for(i in 1:24){ 
+ trainford[k, paste0("lag_168h", i)]   <- train[i+24*k-192,3]
+    }
+  
+}
+
+trainford[,V1:=NULL]
+trainford<-tail(trainford,-7)
+```
+
+
+Construction of wide format for test data is done.
+
+```{r}
+testford<-data.table(matrix(nrow = 2))
+
+for (k in 1:2) {
+  
+
+    
+    for(i in 1:24){ 
+  testford[k, paste0("lag_48h", i)]   <- train[33504+i+24*k,3]
+    }
+    for(i in 1:24){ 
+  testford[k, paste0("lag_168h", i)]   <- train[33384+i+24*k,3]
+    }
+    
+ 
+  
+}
+testford[,V1:=NULL] 
+
+```
+
+
+Data is seperated accoording to its hours. 
+```{r}
+traind<-train[-c(1:336),]
+setkey(traind, Hour_Td)
+
+dtrainh0<-cbind(traind["00:00"],trainford)
+dtrainh1<-cbind(traind["00:00"],trainford)
+dtrainh2<-cbind(traind["00:00"],trainford)
+dtrainh3<-cbind(traind["00:00"],trainford)
+dtrainh4<-cbind(traind["00:00"],trainford)
+dtrainh5<-cbind(traind["00:00"],trainford)
+dtrainh6<-cbind(traind["00:00"],trainford)
+dtrainh7<-cbind(traind["00:00"],trainford)
+dtrainh8<-cbind(traind["00:00"],trainford)
+dtrainh9<-cbind(traind["00:00"],trainford)
+dtrainh10<-cbind(traind["00:00"],trainford)
+dtrainh11<-cbind(traind["00:00"],trainford)
+dtrainh12<-cbind(traind["00:00"],trainford)
+dtrainh13<-cbind(traind["00:00"],trainford)
+dtrainh14<-cbind(traind["00:00"],trainford)
+dtrainh15<-cbind(traind["00:00"],trainford)
+dtrainh16<-cbind(traind["00:00"],trainford)
+dtrainh17<-cbind(traind["00:00"],trainford)
+dtrainh18<-cbind(traind["00:00"],trainford)
+dtrainh19<-cbind(traind["00:00"],trainford)
+dtrainh20<-cbind(traind["00:00"],trainford)
+dtrainh21<-cbind(traind["00:00"],trainford)
+dtrainh22<-cbind(traind["00:00"],trainford)
+dtrainh23<-cbind(traind["00:00"],trainford)
+
+
+setkey(test, Hour_t)
+
+dtesth0<-cbind(test["00:00"],testford)
+dtesth1<-cbind(test["00:00"],testford)
+dtesth2<-cbind(test["00:00"],testford)
+dtesth3<-cbind(test["00:00"],testford)
+dtesth4<-cbind(test["00:00"],testford)
+dtesth5<-cbind(test["00:00"],testford)
+dtesth6<-cbind(test["00:00"],testford)
+dtesth7<-cbind(test["00:00"],testford)
+dtesth8<-cbind(test["00:00"],testford)
+dtesth9<-cbind(test["00:00"],testford)
+dtesth10<-cbind(test["00:00"],testford)
+dtesth11<-cbind(test["00:00"],testford)
+dtesth12<-cbind(test["00:00"],testford)
+dtesth13<-cbind(test["00:00"],testford)
+dtesth14<-cbind(test["00:00"],testford)
+dtesth15<-cbind(test["00:00"],testford)
+dtesth16<-cbind(test["00:00"],testford)
+dtesth17<-cbind(test["00:00"],testford)
+dtesth18<-cbind(test["00:00"],testford)
+dtesth19<-cbind(test["00:00"],testford)
+dtesth20<-cbind(test["00:00"],testford)
+dtesth21<-cbind(test["00:00"],testford)
+dtesth22<-cbind(test["00:00"],testford)
+dtesth23<-cbind(test["00:00"],testford)
+
+
+```
+
+
+Penalized regression models are trained and tested for each hours. Mape values are calculated. 
+
+```{r}
+dtrainhlist<-list(dtrainh0,dtrainh1,dtrainh2,dtrainh3,dtrainh4,dtrainh5,dtrainh6,dtrainh7,dtrainh8,dtrainh9,dtrainh10,dtrainh11,dtrainh12,dtrainh13,dtrainh14,dtrainh15,dtrainh16,dtrainh17,dtrainh18,dtrainh19,dtrainh20,dtrainh21,dtrainh22,dtrainh23)
+
+dtesthlist<-list(dtesth0,dtesth1,dtesth2,dtesth3,dtesth4,dtesth5,dtesth6,dtesth7,dtesth8, dtesth9,dtesth10,dtesth11,dtesth12,dtesth13,dtesth14,dtesth15,dtesth16,dtesth17,dtesth18,dtesth19,dtesth20,dtesth21,dtesth22,dtesth23)
+
+prediction_partd<-vector(mode = "list", length = 24)
+Ape_partd<-vector(mode = "list", length = 24)
+ApeD<-vector(mode = "list", length = 24)
+x<-as.matrix(trainford)
+y<-as.matrix(testford)
+
+for(i in 1:24 ) {
+
+penreg<-cv.glmnet(x, dtrainhlist[[i]][["C_Td"]], nfolds=10)
+
+z<-glmnet(x,dtrainhlist[[i]][["C_Td"]],lambda = penreg$lambda.min)
+
+prediction_partd[[i]]<-predict(z,y)
+
+
+Ape_partd[[i]]<-abs((dtesthlist[[i]][["C_t"]]-prediction_partd[[i]])/dtesthlist[[i]][["C_t"]])*100
+ApeD[[i]]<-mean(Ape_partd[[i]])  
+
+}
+
+
+```
+
+
+##f)
+
+All models are plotted. 
+
+```{r}
+
+par(mfrow=c(1,5))
+boxplot(testp48$ape, main="lag_48", ylim=c(0,10))
+boxplot(testp168$ape,main="lag_168", ylim=c(0,10))
+boxplot(testwithlag$ape,main="linear_regression", ylim=c(0,10))
+boxplot(as.numeric(Apec),main="Linear Regression with Seasonality", ylim=c(0,10))
+boxplot(as.numeric(ApeD), main="Penalized Regression", ylim=c(0,10))
+
+```
+  As it can be seen from boxplots, model with lag_48 has high median and wide range which means high variance. That is not a preferrable one generally and it is an expected result since electric consumption changes from day to day within week. (weekday, weekend etc.)
+  Model with lag_168 has low median and low variance which are good attributes, however it has a lot of outlier that means the model is weak to explain all of data. 
+  Linear regression model has higher median and variance than the model with lag_168 however less outliers.
+  Regression for each hour (with hourly seasonality) provides lower variance than linear regression as expected.However, error median of linear regression is lower. 
+  In general, the best model in terms of variability is penalized regression model with  lowest range. However, it is better to look at last two models for each hour separately since they has separate models for each hour.
+  
+  
+```{r}
+
+  par(mfrow=c(1,2))
+boxplot(Apec,main="Linear Regression with Seasonality", ylim=c(0,7))
+boxplot(ApeD, main="Penalized Regression", ylim=c(0,7))
+
+```  
+
+  When we look at the linear and penalized regression models for each hour, it can be seen that for hours between 11 and 17, penalized regression model has better performance than linear regression model with seasonality. For other hours, it is better to use penalized regression model.  
+
+
+
+
+

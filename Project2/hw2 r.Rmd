@@ -1,0 +1,359 @@
+---
+title: "IE582_HW_2"
+output: html_document
+---
+
+#IE582 HOMEWORK 2
+##PART 1 
+##  1.1
+```{r}
+library(data.table)
+library(MASS)
+require(factoextra)
+```
+
+I took the data as data table, then checked whether there is NA. 
+```{r}
+nmusk<-fread("C:/Users/Musk1.csv")
+```
+
+```{r}
+nmusk<-as.data.table(nmusk)
+```
+
+```{r}
+sum(is.na(nmusk))
+```
+
+At first, I scaled the data to treat all features equally.
+```{r}
+smusk<-scale(nmusk[,3:168])
+musk<-cbind(smusk,nmusk[,1:2])
+
+```
+
+Gave name to the columns in data.
+```{r}
+colnames(musk)<-c(paste("feature",1:166,sep = ""),paste("bag_class", sep = ""),paste("bag_id",sep = ""))
+```
+
+Looked at summary and correlation of the data in order to see whether there is any anormality. 
+```{r echo = T, results = 'hide'}
+summary(musk[,1:166])
+cor(musk[,1:166])
+```
+
+
+###PCA
+
+Used PCA function to the feature columns and got summary in order to check the components.
+```{r echo = T, results = 'hide'}
+pcamusk<-princomp(musk[,1:166], cor=T)
+summary(pcamusk, loadings = T)
+```
+
+Plotted histogram of the pca in order to see distribution of the variance between components.
+```{r}
+fviz_eig(pcamusk, addlabels = TRUE)
+```
+As it can be seen above, first three components explain variance more than 50% since percentage of other components are low which means weak to explain the variance.  
+
+
+
+I plotted first two component of pca results according to bag classes of the data.
+```{r}
+plot(pcamusk$scores[,1],pcamusk$scores[,2],col=musk$bag_class+1,pch=".",cex=3) 
+```
+As it can be seen in the graph, there are main two cluster. However, data is not seperated between those clusters according to their bag classes. In other words, it is difficult to classify data according to their classes with those two components even they are the ones that explain variance the most. 
+
+
+###MDS
+
+Since I scaled the data at the beginning, used it directly. 
+
+Distance matrix is created. MDS function is implemented.
+```{r}
+distmusk<-dist(musk[,1:166], method = "euclidean", upper = TRUE, p = 2)
+mdsmusk<-cmdscale(distmusk)
+```
+
+
+Mds of the data is plotted and labelled according to their bag_class
+```{r}
+plot(mdsmusk[,1],mdsmusk[,2],main='MDS Location',col=musk$bag_class+1,xlab='Dimension 1', ylab='Dimension 2',axes=FALSE)
+
+text(mdsmusk[,1], mdsmusk[,2],(musk$bag_class), cex = 0.9, xpd = TRUE, pos = 4)
+
+```
+As it can be seen from the plot,clusters are not distributed coherently according to their bag classes in MDS too. So, it is weak to explain distribution of instances among clusters according to their bag classes (0 or 1). Also, PCA and MDS results are similar to each other.
+
+
+
+##part1.b MIL
+
+At first, I aggregated data which belongs to the same bag id, in order to represent the bags. I took the average of features of instances for each bag_id so that the bag is represented by the center of its instances.
+```{r}
+aggmusk = aggregate(musk, by = list(musk$bag_id), FUN = mean)
+aggmusk<-as.data.table(aggmusk)
+aggmusk[,Group.1:=NULL]
+```
+
+
+###PCA
+When I tried to use princomp function, I got an error since the number of features is highly bigger than the number of instances.
+
+So, instead of princomp, I used prcomp function and got the summary.
+```{r echo = T, results = 'hide'}
+pcaaggmusk<-prcomp(aggmusk[,1:166], scale=T)
+summary(pcaaggmusk)
+```
+
+
+Plotted histogram of the pca in order to see distribution of the variance between components.
+```{r}
+fviz_eig(pcaaggmusk, addlabels = TRUE)
+```
+As it can be seen above, first four components explain variance almost 70%.But percentage of other components are low which means those components are weak to explain the variance.  
+
+
+###MDA
+
+Since I scaled the data at the beginning, used it directly. 
+
+Distance matrix is created. MDS function is implemented.
+```{r}
+distaggmusk<-dist(aggmusk[,1:166], method = "euclidean", upper = TRUE, p = 2)
+mdsaggmusk<-cmdscale(distaggmusk)
+```
+
+Mds of the data is plotted and labelled according to their bag_class features.
+```{r}
+plot(mdsaggmusk[,1],mdsaggmusk[,2],main='MDS Location',col=aggmusk$bag_class+1,xlab='Dimension 1', ylab='Dimension 2',axes=FALSE)
+
+text(mdsaggmusk[,1], mdsaggmusk[,2],(aggmusk$bag_class), cex = 0.9, xpd = TRUE, pos = 4)
+
+
+```
+As it can be seen from the plot,clusters are not distributed coherently according to their bag classes in MDS. So, it is weak to explain distribution of instances among clusters according to their bag classes (0 or 1). 
+
+
+
+
+##Part2
+
+###2-1
+
+Image is readed.displayed.
+```{r}
+require(imager)
+image=load.image("C:/Users/indir.jpg")
+str(image)
+dim(image)
+```
+
+Image is displayed.
+```{r}
+plot(image)
+```
+
+
+###2-2
+
+Images are copied in order to create channels separately. 
+```{r}
+image1 = copy(image)
+B(image1) = 0
+G(image1) = 0
+
+image2 = copy(image)
+R(image2) = 0
+G(image2) = 0
+
+image3 = copy(image)
+R(image3) = 0
+B(image3) = 0
+```
+
+
+Channels are plotted.
+```{r}
+par(mfrow = c(1,3))
+plot(c(1, 256), c(1, 256), type = "n", xlab = "", ylab = "", main = "Red Version")
+rasterImage(image1, 1, 1, 256, 256, angle = 0, interpolate = FALSE)
+
+plot(c(1, 256), c(1, 256), type = "n", xlab = "", ylab = "", main = "Green Version")
+rasterImage(image2, 1, 1, 256, 256, angle = 0, interpolate = FALSE)
+
+plot(c(1, 256), c(1, 256), type = "n", xlab = "", ylab = "", main = "Blue Version")
+rasterImage(image3, 1, 1, 256, 256, angle = 0, interpolate = FALSE)
+```
+
+
+From uniform distribution between min pixel value and 0.1 times the maximum pixel value is created for each channel.
+```{r}
+NoiseRed=matrix(runif(65536,min=min(image),max=max(image)*0.1),256)
+NoiseGreen=matrix(runif(65536,min=min(image),max=max(image)*0.1),256)
+NoiseBlue=matrix(runif(65536,min=min(image),max=max(image)*0.1),256)
+```
+
+Noises for each channel are added to a copy of the image.
+```{r}
+imagenoise = copy(image)
+
+imagenoise[,,1] <- image[,,1] + NoiseRed
+imagenoise [,,2] <- image [,,2] + NoiseGreen
+imagenoise [,,3] <- image[,,3] + NoiseBlue
+```
+
+Noises which are out of interval(0,1) is equalled to 1.
+```{r}
+#If pixel is greater than 1, then I forced it to be 1
+imagenoise [,,1][imagenoise[,,1]>1]=1
+imagenoise [,,2][imagenoise[,,2]>1]=1
+imagenoise [,,3][imagenoise[,,3]>1]=1
+```
+
+####2-2-a
+
+Noised image is plotted.
+```{r}
+plot(c(1, 256), c(1, 256), axes = FALSE, col = 0, xlab = "",ylab = "", main = "Noised image")
+rasterImage(imagenoise, 0,0,256,256, interpolate = FALSE)
+```
+
+####2-2-b
+
+Noised image is copied in order to create channels separately. 
+```{r}
+imagenoiseR = copy(imagenoise)
+B(imagenoiseR) = 0
+G(imagenoiseR) = 0
+imagenoiseG = copy(imagenoise)
+R(imagenoiseG) = 0
+B(imagenoiseG) = 0
+imagenoiseB = copy(imagenoise)
+R(imagenoiseB) = 0
+G(imagenoiseB) = 0
+```
+
+Channels of noised image are plotted.
+```{r}
+par(mfrow = c(1, 3))
+plot(c(1, 256), c(1, 256), type = "n", xlab = "", ylab = "", main = "Red Version")
+rasterImage(imagenoiseR, 0, 0, 256, 256, angle = 0, interpolate = FALSE)
+
+plot(c(1, 256), c(1, 256), type = "n", xlab = "", ylab = "", main = "Green Version")
+rasterImage(imagenoiseG, 0, 0, 256, 256, angle = 0, interpolate = FALSE)
+
+plot(c(1, 256), c(1, 256), type = "n", xlab = "", ylab = "", main = "Blue Version")
+rasterImage(imagenoiseB, 0, 0, 256, 256, angle = 0, interpolate = FALSE)
+```
+
+
+
+###2-3
+
+
+At first, noised image is greyscaled.
+```{r}
+imagegray = grayscale(imagenoise)
+plot(c(1, 256), c(1, 256), type = "n", xlab = "", ylab = "", main = "Gray Noised Image")
+rasterImage(imagegray, 1, 1, 256, 256, angle = 0, interpolate = FALSE)
+```
+
+
+####2-3-a
+
+In a loop in another loop, data matrix of grayscale noised image is created. 
+```{r}
+PatchVectors = matrix(, nrow = 232 * 232, ncol = 25*25)
+rowChanger = 1
+
+for (i in 1:232) {
+  for (j in 1:232) {
+    Feature = imagegray[(i):(i + 24),(j):(j + 24) ]
+    Feature = as.vector(Feature)
+    PatchVectors[rowChanger, ] = Feature
+    rowChanger = rowChanger + 1
+  }
+}
+```
+
+
+I applied PCA to the data matrix and got the summary.
+Since some patches have zero variances (full black or full white), I added na.omit function because otherwise the function is not working.
+```{r echo = T, results = 'hide'}
+pcaimage = princomp(na.omit(PatchVectors), cor = T)
+summary(pcaimage)
+```
+
+
+Plotted histogram of the pca in order to see distribution of the variance between components.
+```{r}
+fviz_eig(pcaimage, addlabels = TRUE)
+```
+As it can be seen above, first three components explain variance almost 60% since percentage of other components are low which means weak to explain the variance.  
+
+
+I plotted first two component of pca results.
+```{r}
+plot(pcaimage$scores[,1],pcaimage$scores[,2],pch=".",cex=3) 
+```
+Since patches with zero variances(all black and all white) are not committed to the PCA, other patches created PCA and also there is symmetry in the graph which means that also grayscale noised image is symmetric too.
+
+
+
+####2-3-b
+
+At first, I got components.
+```{r}
+Scores = as.data.table(pcaimage$scores)
+```
+
+Data matrices for the first three components are created.
+```{r}
+Dim.1 = matrix(Scores$Comp.1, nrow = 232, ncol = 232 , byrow = TRUE)
+Dim.2 = matrix(Scores$Comp.2, nrow = 232, ncol = 232 , byrow = TRUE)
+Dim.3 = matrix(Scores$Comp.3, nrow = 232, ncol = 232 , byrow = TRUE)
+```
+
+Scores for those three components are plotted.
+```{r}
+par(mfrow = c(1, 3))
+plot(c(0, 232), c(0, 232), type = "n", xlab = "", ylab = "",main = "Image of Dim.1")
+rasterImage(as.cimg(Dim.1), 0, 0, 232, 232, angle = 0, interpolate = TRUE)
+plot(c(0, 232), c(0, 232), type = "n", xlab = "", ylab = "",main = "Image of Dim.2")
+rasterImage(as.cimg(Dim.2), 0, 0, 232, 232, angle = 0, interpolate = TRUE)
+plot(c(0, 232), c(0, 232), type = "n", xlab = "", ylab = "",main = "Image of Dim.3")
+rasterImage(as.cimg(Dim.3), 0, 0, 232, 232, angle = 0, interpolate = TRUE)
+```
+Since it can be seen from those three images above, the first component worked better than other ones since it keeps more variance than others keep.
+
+
+####2-3-c
+
+For the first three components, matrices are created.  
+```{r}
+Comp.1 = pcaimage$loadings[,1]
+Comp.1 = matrix(Comp.1, nrow = 25, ncol = 25, byrow = TRUE)
+Comp.2 = pcaimage$loadings[,2]
+Comp.2 = matrix(Comp.2, nrow = 25, ncol = 25, byrow = TRUE)
+Comp.3 = pcaimage$loadings[,3]
+Comp.3 = matrix(Comp.3, nrow = 25, ncol = 25, byrow = TRUE)
+```
+
+
+Then, components are plotted. 
+```{r}
+par(mfrow = c(1, 3))
+plot(c(0, 25), c(0, 25), type = "n", xlab = "", ylab = "",main = "Image composed from Comp.1")
+rasterImage(as.cimg(Comp.1), 1, 1, 25, 25, angle = 0, interpolate = TRUE)
+plot(c(0, 25), c(0, 25), type = "n", xlab = "", ylab = "",main = "Image composed from Comp.2")
+rasterImage(as.cimg(Comp.2), 1, 1, 25, 25, angle = 0, interpolate = TRUE)
+plot(c(0, 25), c(0, 25), type = "n", xlab = "", ylab = "",main = "Image composed from Comp.3")
+rasterImage(as.cimg(Comp.3), 1, 1, 25, 25, angle = 0, interpolate = TRUE)
+```
+
+Since the photo includes a lot black and white pixels, it is hard to comment on the plots of the components.y
+
+
